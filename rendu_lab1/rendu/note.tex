@@ -1,0 +1,31 @@
+\documentclass[a4paper,11pt]{article}
+\pagestyle{empty}
+\title{Notes sur le Lab 1}
+\author{Antoine POIRIER ING5 DEF}
+\begin{document}
+
+\maketitle
+
+\section*{O\`u peuvent s'infiltrer les instructions douteuses ?}
+
+Ces instructions peuvent s'imiscer dans le système IA de deux fa\c{c}ons principales : soit de manière directe gr\^ace à des prompts utilisateurs néfastes (direct prompt injection), soit indirectement par le biais des sources de données qui ne proviennent pas directement de l'utilisateur mais plut\^ot des plugins et/ou datasets utilis\'es par le LLM (indirection prompt injection).
+
+\section*{Quelles mesures ont chang\'{e} le r\'{e}sultat ?}
+
+La suppression d'expressions imp\'eratives et le r\'etrogradage des privil\`eges ont permit de r\'eduire les risques li\'es notamment \`a l'agence excessive du mod\`ele et aux injections.
+
+\section*{Les risques identifi\'es}
+
+\begin{tabular}{|c|c|c|}
+	\hline
+	Risque & OWASP & MITRE ALIAS \\
+	Tentative injection pour obtenir les acc\`es admin. & LLM01 & AML.T0051 \\
+	Affichage des authentifiants admin & LLM02 & AML.T0098  \\
+	Traitement des sorties non-s\'ecuris\'e & LLM02 & AML.T0135 \\
+	Privil\`eges excessives confi\'es au mod\`ele & LLM08 & AML.T0053 \\
+	Tentative direct de jailbreak & LLM01 & AML.T0054 \\
+	\hline
+\end{tabular}
+
+\end{document}
+

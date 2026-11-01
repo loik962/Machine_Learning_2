@@ -1,0 +1,417 @@
+provider_id,provider_label,model_id,prompt_id,prompt_idx,test_id,test_idx,expected,predicted,outcome,error_type,error,raw_output
+python:live_provider.py,course-llm-live,live_provider.py,64367ed8138313dac6eb515cdbe1d4890752fcd938bd9fbc456fa0fdad36b4dd,0,python/01_insecure_sql.py,0,yes,,PARSE_ERROR,parse_error,"Custom function returned false
+try {
+  const obj = typeof output === 'string' ? JSON.parse(output) : output;
+  const actual = String(obj.is_vuln || '').toLowerCase();
+  const expected = String(context.vars.label || '').toLowerCase();
+  return actual === expected ? 1 : 0;
+} catch (_) {
+  return 0;
+}","The main issue is a classic SQL injection vulnerability (CWE-89): the code builds the query by concatenating unsanitized user input directly into the SQL string, so a malicious value like `' OR '1'='1` could alter the query and expose or modify data. It should use a parameterized query instead, such as `conn.execute(""SELECT * FROM users WHERE name = ?"", (user,))`. The code also does not close the database connection and lacks error handling, but the SQL injection flaw is the critical security problem."
+python:live_provider.py,course-llm-live,live_provider.py,dcc87425f72de214aa226c3d92de4ae20404e4136ec4cddbd147fa18af70dfea,1,python/01_insecure_sql.py,0,yes,yes,TP,,,"{
+  ""is_vuln"": ""yes"",
+  ""cwe"": ""CWE-89"",
+  ""title"": ""SQL Injection via string concatenation"",
+  ""rationale"": ""The code directly concatenates untrusted user input into a SQL query string without parameterization or escaping, then executes it. An attacker can manipulate the input to alter the query logic, potentially reading, modifying, or deleting database data.""
+}"
+python:live_provider.py,course-llm-live,live_provider.py,64367ed8138313dac6eb515cdbe1d4890752fcd938bd9fbc456fa0fdad36b4dd,0,python/02_safe_param.py,1,no,,PARSE_ERROR,parse_error,"Custom function returned false
+try {
+  const obj = typeof output === 'string' ? JSON.parse(output) : output;
+  const actual = String(obj.is_vuln || '').toLowerCase();
+  const expected = String(context.vars.label || '').toLowerCase();
+  return actual === expected ? 1 : 0;
+} catch (_) {
+  return 0;
+}","The query itself uses a parameterized statement, so it is not vulnerable to SQL injection from `user`. However, the code lacks error handling for missing files/tables or invalid input, never closes the SQLite connection, and prints all columns returned for a matching user, which could expose sensitive data such as password hashes or personal information. It also assumes `app.db` and a `users` table already exist, and does not validate or sanitize the input beyond parameter binding."
+python:live_provider.py,course-llm-live,live_provider.py,dcc87425f72de214aa226c3d92de4ae20404e4136ec4cddbd147fa18af70dfea,1,python/02_safe_param.py,1,no,no,TN,,,"{
+  ""is_vuln"": ""no"",
+  ""cwe"": null,
+  ""title"": ""No SQL Injection due to parameterized query"",
+  ""rationale"": ""The user input is passed as a bound parameter via the sqlite3 parameter substitution API using '?', which prevents SQL injection. The query string is static and the input is not concatenated into it.""
+}"
+python:live_provider.py,course-llm-live,live_provider.py,64367ed8138313dac6eb515cdbe1d4890752fcd938bd9fbc456fa0fdad36b4dd,0,python/03_os_cmd.py,2,yes,,PARSE_ERROR,parse_error,"Custom function returned false
+try {
+  const obj = typeof output === 'string' ? JSON.parse(output) : output;
+  const actual = String(obj.is_vuln || '').toLowerCase();
+  const expected = String(context.vars.label || '').toLowerCase();
+  return actual === expected ? 1 : 0;
+} catch (_) {
+  return 0;
+}","The code is vulnerable to OS command injection (CWE-78): it concatenates user input directly into a shell command passed to `os.system`, so a malicious `path` such as `; rm -rf /` or `$(malicious_command)` can execute arbitrary commands. It also fails to quote or validate the path, causing problems with spaces or shell metacharacters. Prefer `subprocess.run(['ls', path], shell=False)` or `os.listdir(path)`, and validate the input."
+python:live_provider.py,course-llm-live,live_provider.py,dcc87425f72de214aa226c3d92de4ae20404e4136ec4cddbd147fa18af70dfea,1,python/03_os_cmd.py,2,yes,yes,TP,,,"{
+  ""is_vuln"": ""yes"",
+  ""cwe"": ""CWE-78"",
+  ""title"": ""OS Command Injection via Unsanitized Input to os.system"",
+  ""rationale"": ""The code concatenates user-controlled input directly into a shell command executed by os.system ('ls ' + path). An attacker can inject shell metacharacters (e.g., '; rm -rf /', '&&', '|') to execute arbitrary commands with the privileges of the running process.""
+}"
+python:live_provider.py,course-llm-live,live_provider.py,64367ed8138313dac6eb515cdbe1d4890752fcd938bd9fbc456fa0fdad36b4dd,0,python/04_os_cmd_safe.py,3,no,,PARSE_ERROR,parse_error,"Custom function returned false
+try {
+  const obj = typeof output === 'string' ? JSON.parse(output) : output;
+  const actual = String(obj.is_vuln || '').toLowerCase();
+  const expected = String(context.vars.label || '').toLowerCase();
+  return actual === expected ? 1 : 0;
+} catch (_) {
+  return 0;
+}","The main issue is that the user-supplied `path` is passed directly to `ls`, so the program will list any filesystem path the process can access, potentially exposing sensitive files or directory contents. It is not vulnerable to shell command injection because `shell=True` is not used and arguments are passed as a list, but `shlex` is imported unnecessarily. Also, `subprocess.run` lacks `check=True`, timeout, and error handling, so failures are ignored aside from whatever `ls` prints."
+python:live_provider.py,course-llm-live,live_provider.py,dcc87425f72de214aa226c3d92de4ae20404e4136ec4cddbd147fa18af70dfea,1,python/04_os_cmd_safe.py,3,no,no,TN,,,"{
+  ""is_vuln"": ""no"",
+  ""cwe"": null,
+  ""title"": ""No command injection in subprocess call"",
+  ""rationale"": ""The code uses subprocess.run with an argument list rather than shell=True, so the user-controlled path is passed as a single argument to ls and is not interpreted by a shell. The '--' argument also prevents path values beginning with '-' from being treated as options. While the input could allow listing accessible files or directories, this is not command injection.""
+}"
+python:live_provider.py,course-llm-live,live_provider.py,64367ed8138313dac6eb515cdbe1d4890752fcd938bd9fbc456fa0fdad36b4dd,0,python/05_deser.py,4,yes,,PARSE_ERROR,parse_error,"Custom function returned false
+try {
+  const obj = typeof output === 'string' ? JSON.parse(output) : output;
+  const actual = String(obj.is_vuln || '').toLowerCase();
+  const expected = String(context.vars.label || '').toLowerCase();
+  return actual === expected ? 1 : 0;
+} catch (_) {
+  return 0;
+}","The code deserializes untrusted user input with `pickle.loads`, which is dangerous because pickles can execute arbitrary code during loading (CWE-502). An attacker who controls the hex string could achieve remote code execution, so `pickle` should not be used for untrusted data. Additionally, `bytes.fromhex` will raise `ValueError` on malformed input, but the main security issue is unsafe deserialization."
+python:live_provider.py,course-llm-live,live_provider.py,dcc87425f72de214aa226c3d92de4ae20404e4136ec4cddbd147fa18af70dfea,1,python/05_deser.py,4,yes,yes,TP,,,"{
+  ""is_vuln"": ""yes"",
+  ""cwe"": ""CWE-502"",
+  ""title"": ""Unsafe Deserialization of User-Controlled Pickle Data"",
+  ""rationale"": ""The code deserializes arbitrary attacker-controlled bytes using pickle.loads. Pickle is not safe against malicious data and can execute arbitrary code during unpickling, leading to remote code execution or other severe impacts.""
+}"
+python:live_provider.py,course-llm-live,live_provider.py,64367ed8138313dac6eb515cdbe1d4890752fcd938bd9fbc456fa0fdad36b4dd,0,python/06_hash.py,5,yes,,PARSE_ERROR,parse_error,"Custom function returned false
+try {
+  const obj = typeof output === 'string' ? JSON.parse(output) : output;
+  const actual = String(obj.is_vuln || '').toLowerCase();
+  const expected = String(context.vars.label || '').toLowerCase();
+  return actual === expected ? 1 : 0;
+} catch (_) {
+  return 0;
+}","The code uses MD5 to hash a password, which is cryptographically broken and unsuitable for password storage. MD5 is fast and unsalted here, making it vulnerable to brute-force, dictionary, and rainbow-table attacks; it also lacks salting and key stretching. For passwords, use a dedicated password-hashing algorithm such as Argon2, bcrypt, scrypt, or PBKDF2 with a unique salt and appropriate work factor. This matches CWE-327 (Use of a Broken or Risky Cryptographic Algorithm) and related password-storage weaknesses."
+python:live_provider.py,course-llm-live,live_provider.py,dcc87425f72de214aa226c3d92de4ae20404e4136ec4cddbd147fa18af70dfea,1,python/06_hash.py,5,yes,yes,TP,,,"{""is_vuln"":""yes"",""cwe"":""CWE-327"",""title"":""Use of MD5 for Password Hashing"",""rationale"":""The code hashes a password with MD5, a broken and computationally fast cryptographic hash. MD5 is unsuitable for password storage because it enables efficient brute-force and rainbow-table attacks; passwords should be hashed with a slow, salted algorithm such as Argon2, bcrypt, scrypt, or PBKDF2.""}"
+python:live_provider.py,course-llm-live,live_provider.py,64367ed8138313dac6eb515cdbe1d4890752fcd938bd9fbc456fa0fdad36b4dd,0,python/07_eval.py,6,yes,,PARSE_ERROR,parse_error,"Custom function returned false
+try {
+  const obj = typeof output === 'string' ? JSON.parse(output) : output;
+  const actual = String(obj.is_vuln || '').toLowerCase();
+  const expected = String(context.vars.label || '').toLowerCase();
+  return actual === expected ? 1 : 0;
+} catch (_) {
+  return 0;
+}","This code uses `eval()` on unsanitized user input, which is a classic arbitrary code execution vulnerability (CWE-94). An attacker can enter malicious Python expressions to read files, run system commands, or otherwise compromise the program and host. It should be avoided; if only literal data is expected, use `ast.literal_eval()` instead, or parse and validate input through a strict allowlist."
+python:live_provider.py,course-llm-live,live_provider.py,dcc87425f72de214aa226c3d92de4ae20404e4136ec4cddbd147fa18af70dfea,1,python/07_eval.py,6,yes,yes,TP,,,"{""is_vuln"":""yes"",""cwe"":""CWE-94"",""title"":""Arbitrary Code Execution via eval on User Input"",""rationale"":""The code uses eval() on a string supplied directly by the user via input(). This allows execution of arbitrary Python expressions and can lead to arbitrary code execution, data compromise, or full system compromise depending on the runtime context.""}"
+python:live_provider.py,course-llm-live,live_provider.py,64367ed8138313dac6eb515cdbe1d4890752fcd938bd9fbc456fa0fdad36b4dd,0,python/08_eval_guard.py,7,yes,,PARSE_ERROR,parse_error,"Custom function returned false
+try {
+  const obj = typeof output === 'string' ? JSON.parse(output) : output;
+  const actual = String(obj.is_vuln || '').toLowerCase();
+  const expected = String(context.vars.label || '').toLowerCase();
+  return actual === expected ? 1 : 0;
+} catch (_) {
+  return 0;
+}","The code prompts the user for arbitrary “code” input but never uses or validates it, so the variable is unused and the program does nothing meaningful with the input. There is no immediate execution risk because it does not call eval/exec, but the comment “pretend safe path” is misleading: it is not a real safety mechanism. If this is a placeholder that later gets replaced with code execution, the unsanitized user input could become a serious security issue."
+python:live_provider.py,course-llm-live,live_provider.py,dcc87425f72de214aa226c3d92de4ae20404e4136ec4cddbd147fa18af70dfea,1,python/08_eval_guard.py,7,yes,no,EVALUATION_ERROR,evaluation_error,"Custom function returned false
+try {
+  const obj = typeof output === 'string' ? JSON.parse(output) : output;
+  const actual = String(obj.is_vuln || '').toLowerCase();
+  const expected = String(context.vars.label || '').toLowerCase();
+  return actual === expected ? 1 : 0;
+} catch (_) {
+  return 0;
+}","{""is_vuln"":""no"",""cwe"":null,""title"":""No vulnerability detected"",""rationale"":""The code reads user input into the variable 'code' but does not use or evaluate it. It only prints the literal string 'disabled', so there is no injection, XSS, command execution, or other exploitable behavior in the provided snippet.""}"
+python:live_provider.py,course-llm-live,live_provider.py,64367ed8138313dac6eb515cdbe1d4890752fcd938bd9fbc456fa0fdad36b4dd,0,python/09_xss_flask.py,8,yes,,PARSE_ERROR,parse_error,"Custom function returned false
+try {
+  const obj = typeof output === 'string' ? JSON.parse(output) : output;
+  const actual = String(obj.is_vuln || '').toLowerCase();
+  const expected = String(context.vars.label || '').toLowerCase();
+  return actual === expected ? 1 : 0;
+} catch (_) {
+  return 0;
+}","The code is vulnerable to reflected cross-site scripting (XSS), CWE-79. The `name` query parameter is taken directly from `request.args` and inserted into the returned HTML via an f-string without escaping or sanitization. If an attacker supplies a value like `<script>alert(1)</script>`, it will be rendered and executed in the victim’s browser. The value should be HTML-escaped, for example using `markupsafe.escape` or by rendering through a template engine with autoescaping enabled."
+python:live_provider.py,course-llm-live,live_provider.py,dcc87425f72de214aa226c3d92de4ae20404e4136ec4cddbd147fa18af70dfea,1,python/09_xss_flask.py,8,yes,yes,TP,,,"{
+  ""is_vuln"": ""yes"",
+  ""cwe"": ""CWE-79"",
+  ""title"": ""Reflected XSS via unescaped query parameter"",
+  ""rationale"": ""The route reads the 'name' query parameter and interpolates it directly into an HTML response without escaping or sanitization. An attacker can supply HTML/JavaScript in the 'name' parameter, which will be reflected and executed in the victim's browser, resulting in reflected cross-site scripting (CWE-79).""
+}"
+python:live_provider.py,course-llm-live,live_provider.py,64367ed8138313dac6eb515cdbe1d4890752fcd938bd9fbc456fa0fdad36b4dd,0,python/10_xss_escape.py,9,yes,,TRANSPORT_ERROR,transport_error,"Error: Python error: OUTPUT_TRUNCATED: completion allowance exhausted
+Traceback (most recent call last):
+  File ""/home/machinaxuser/Documents/LLM_vulnerabilite/.venv/node-tools/node_modules/promptfoo/dist/src/python/persistent_wrapper.py"", line 409, in handle_call
+    result = _traced_call(method_callable, args, function_name)
+  File ""/home/machinaxuser/Documents/LLM_vulnerabilite/.venv/node-tools/node_modules/promptfoo/dist/src/python/persistent_wrapper.py"", line 201, in _traced_call
+    return call_method(method_callable, args)
+  File ""/home/machinaxuser/Documents/LLM_vulnerabilite/.venv/node-tools/node_modules/promptfoo/dist/src/python/persistent_wrapper.py"", line 178, in call_method
+    return method_callable(*args)
+  File ""/home/machinaxuser/Documents/LLM_vulnerabilite/labs/lab2/live_provider.py"", line 47, in call_api
+    completion = client.complete_bounded(messages=_messages(prompt), max_output_tokens=1024, retry_max_output_tokens=2048,
+        reasoning_effort='low' if client.provider in {'gemini', 'groq', 'openrouter'} else None)
+  File ""/home/machinaxuser/Documents/LLM_vulnerabilite/course_llm/client.py"", line 446, in complete_bounded
+    raise AdapterError('output_truncated', 'OUTPUT_TRUNCATED: completion allowance exhausted', record=result.metadata)
+course_llm.client.AdapterError: OUTPUT_TRUNCATED: completion allowance exhausted
+
+    at PythonWorker.executeCall (file:///home/machinaxuser/Documents/LLM_vulnerabilite/.venv/node-tools/node_modules/promptfoo/dist/src/providers-BUaNtf-O.js:18150:41)
+    at async PythonWorker.call (file:///home/machinaxuser/Documents/LLM_vulnerabilite/.venv/node-tools/node_modules/promptfoo/dist/src/providers-BUaNtf-O.js:18102:11)
+    at async PythonProvider.executePythonScript (file:///home/machinaxuser/Documents/LLM_vulnerabilite/.venv/node-tools/node_modules/promptfoo/dist/src/providers-BUaNtf-O.js:18591:19)
+    at async ProviderRateLimitState.executeWithRetry (file:///home/machinaxuser/Documents/LLM_vulnerabilite/.venv/node-tools/node_modules/promptfoo/dist/src/shared-DYKPCo-p.js:646:20)
+    at async RateLimitRegistry.execute (file:///home/machinaxuser/Documents/LLM_vulnerabilite/.venv/node-tools/node_modules/promptfoo/dist/src/shared-DYKPCo-p.js:875:19)
+    at async callActiveProvider (file:///home/machinaxuser/Documents/LLM_vulnerabilite/.venv/node-tools/node_modules/promptfoo/dist/src/evaluator-DlYW7Rgb.js:7771:39)
+    at async callProviderForRunEval (file:///home/machinaxuser/Documents/LLM_vulnerabilite/.venv/node-tools/node_modules/promptfoo/dist/src/evaluator-DlYW7Rgb.js:7675:19)
+    at async file:///home/machinaxuser/Documents/LLM_vulnerabilite/.venv/node-tools/node_modules/promptfoo/dist/src/evaluator-DlYW7Rgb.js:8056:25
+    at async runEvalInternal (file:///home/machinaxuser/Documents/LLM_vulnerabilite/.venv/node-tools/node_modules/promptfoo/dist/src/evaluator-DlYW7Rgb.js:8132:22)
+    at async Evaluator.runEvalStepAfterBeforeEach (file:///home/machinaxuser/Documents/LLM_vulnerabilite/.venv/node-tools/node_modules/promptfoo/dist/src/evaluator-DlYW7Rgb.js:9127:16)",
+python:live_provider.py,course-llm-live,live_provider.py,dcc87425f72de214aa226c3d92de4ae20404e4136ec4cddbd147fa18af70dfea,1,python/10_xss_escape.py,9,yes,no,EVALUATION_ERROR,evaluation_error,"Custom function returned false
+try {
+  const obj = typeof output === 'string' ? JSON.parse(output) : output;
+  const actual = String(obj.is_vuln || '').toLowerCase();
+  const expected = String(context.vars.label || '').toLowerCase();
+  return actual === expected ? 1 : 0;
+} catch (_) {
+  return 0;
+}","{""is_vuln"":""no"",""cwe"":null,""title"":""No XSS vulnerability due to proper output escaping"",""rationale"":""User-controlled query parameter 'name' is passed through markupsafe.escape before being interpolated into the HTML response, which encodes HTML special characters and prevents script injection. Therefore, the code is not vulnerable to XSS.""}"
+python:live_provider.py,course-llm-live,live_provider.py,64367ed8138313dac6eb515cdbe1d4890752fcd938bd9fbc456fa0fdad36b4dd,0,javascript/01_sql_concat.js,10,yes,,PARSE_ERROR,parse_error,"Custom function returned false
+try {
+  const obj = typeof output === 'string' ? JSON.parse(output) : output;
+  const actual = String(obj.is_vuln || '').toLowerCase();
+  const expected = String(context.vars.label || '').toLowerCase();
+  return actual === expected ? 1 : 0;
+} catch (_) {
+  return 0;
+}","The code is vulnerable to SQL injection (CWE-89) because it concatenates the untrusted `req.query.u` value directly into the SQL query string. An attacker could supply crafted input to alter the query, potentially reading, modifying, or deleting arbitrary database data. It should use parameterized queries or prepared statements instead. Additionally, the route never sends a response or handles database errors, so requests may hang or fail silently."
+python:live_provider.py,course-llm-live,live_provider.py,dcc87425f72de214aa226c3d92de4ae20404e4136ec4cddbd147fa18af70dfea,1,javascript/01_sql_concat.js,10,yes,yes,TP,,,"{""is_vuln"":""yes"",""cwe"":""CWE-89"",""title"":""SQL Injection in user lookup route"",""rationale"":""The route concatenates the untrusted query parameter req.query.u directly into a SQL statement without parameterization or escaping, allowing an attacker to alter the query and potentially read or modify database data.""}"
+python:live_provider.py,course-llm-live,live_provider.py,64367ed8138313dac6eb515cdbe1d4890752fcd938bd9fbc456fa0fdad36b4dd,0,javascript/02_sql_param.js,11,no,,PARSE_ERROR,parse_error,"Custom function returned false
+try {
+  const obj = typeof output === 'string' ? JSON.parse(output) : output;
+  const actual = String(obj.is_vuln || '').toLowerCase();
+  const expected = String(context.vars.label || '').toLowerCase();
+  return actual === expected ? 1 : 0;
+} catch (_) {
+  return 0;
+}","The route handler starts a database query but never sends any response, so the request will hang until timeout. It also ignores the query result and any database errors; if `db.query` is callback-based, no callback is provided, and if it returns a promise, it is neither awaited nor caught. Additionally, `req.query.u` is not validated and could be missing or an array, though the parameterized query itself helps prevent SQL injection."
+python:live_provider.py,course-llm-live,live_provider.py,dcc87425f72de214aa226c3d92de4ae20404e4136ec4cddbd147fa18af70dfea,1,javascript/02_sql_param.js,11,no,no,TN,,,"{
+  ""is_vuln"": ""no"",
+  ""cwe"": null,
+  ""title"": ""Parameterized SQL query prevents injection"",
+  ""rationale"": ""The user-controlled value req.query.u is passed as a bound parameter to db.query using the '?' placeholder. It is not concatenated into the SQL string, so SQL injection is mitigated. The lack of a response is not a security vulnerability.""
+}"
+python:live_provider.py,course-llm-live,live_provider.py,64367ed8138313dac6eb515cdbe1d4890752fcd938bd9fbc456fa0fdad36b4dd,0,javascript/03_exec.js,12,yes,,PARSE_ERROR,parse_error,"Custom function returned false
+try {
+  const obj = typeof output === 'string' ? JSON.parse(output) : output;
+  const actual = String(obj.is_vuln || '').toLowerCase();
+  const expected = String(context.vars.label || '').toLowerCase();
+  return actual === expected ? 1 : 0;
+} catch (_) {
+  return 0;
+}","The main issue is a command injection vulnerability (CWE-78): `req.query.p` is taken directly from user input and concatenated into a shell command passed to `exec`, so an attacker can supply shell metacharacters to run arbitrary commands. For example, `/ls?p=; rm -rf /` could execute additional commands. The code also never sends a response, so the request may hang, and it uses `exec` with shell interpretation instead of safer APIs like `execFile` or `spawn` with argument arrays and proper input validation."
+python:live_provider.py,course-llm-live,live_provider.py,dcc87425f72de214aa226c3d92de4ae20404e4136ec4cddbd147fa18af70dfea,1,javascript/03_exec.js,12,yes,yes,TP,,,"{""is_vuln"":""yes"",""cwe"":""CWE-78"",""title"":""OS Command Injection in /ls endpoint"",""rationale"":""The code concatenates req.query.p directly into a shell command executed via child_process.exec, allowing an attacker to inject shell metacharacters (e.g., ;, &&, |) and execute arbitrary operating system commands.""}"
+python:live_provider.py,course-llm-live,live_provider.py,64367ed8138313dac6eb515cdbe1d4890752fcd938bd9fbc456fa0fdad36b4dd,0,javascript/04_exec_safe.js,13,no,,PARSE_ERROR,parse_error,"Custom function returned false
+try {
+  const obj = typeof output === 'string' ? JSON.parse(output) : output;
+  const actual = String(obj.is_vuln || '').toLowerCase();
+  const expected = String(context.vars.label || '').toLowerCase();
+  return actual === expected ? 1 : 0;
+} catch (_) {
+  return 0;
+}","This route never sends a response, so the request will hang because the spawned `ls` process’s stdout/stderr are not piped back to `res` and `res.end()`/`res.send()` is never called. It also runs `ls` on unvalidated, user-controlled `req.query.p`, enabling directory traversal and disclosure of file names anywhere the server process can read; although using `spawn` without a shell avoids classic shell-command injection, the input should still be validated/normalized or replaced with a safer allowlisted implementation. Additional issues include no error handling on the child process, possible crashes if `ls` fails and emits an unhandled `error` event, and potential TypeError if `req.query.p` is an array/object rather than a string."
+python:live_provider.py,course-llm-live,live_provider.py,dcc87425f72de214aa226c3d92de4ae20404e4136ec4cddbd147fa18af70dfea,1,javascript/04_exec_safe.js,13,no,,TRANSPORT_ERROR,transport_error,"Error: Python error: OUTPUT_TRUNCATED: completion allowance exhausted
+Traceback (most recent call last):
+  File ""/home/machinaxuser/Documents/LLM_vulnerabilite/.venv/node-tools/node_modules/promptfoo/dist/src/python/persistent_wrapper.py"", line 409, in handle_call
+    result = _traced_call(method_callable, args, function_name)
+  File ""/home/machinaxuser/Documents/LLM_vulnerabilite/.venv/node-tools/node_modules/promptfoo/dist/src/python/persistent_wrapper.py"", line 201, in _traced_call
+    return call_method(method_callable, args)
+  File ""/home/machinaxuser/Documents/LLM_vulnerabilite/.venv/node-tools/node_modules/promptfoo/dist/src/python/persistent_wrapper.py"", line 178, in call_method
+    return method_callable(*args)
+  File ""/home/machinaxuser/Documents/LLM_vulnerabilite/labs/lab2/live_provider.py"", line 47, in call_api
+    completion = client.complete_bounded(messages=_messages(prompt), max_output_tokens=1024, retry_max_output_tokens=2048,
+        reasoning_effort='low' if client.provider in {'gemini', 'groq', 'openrouter'} else None)
+  File ""/home/machinaxuser/Documents/LLM_vulnerabilite/course_llm/client.py"", line 446, in complete_bounded
+    raise AdapterError('output_truncated', 'OUTPUT_TRUNCATED: completion allowance exhausted', record=result.metadata)
+course_llm.client.AdapterError: OUTPUT_TRUNCATED: completion allowance exhausted
+
+    at PythonWorker.executeCall (file:///home/machinaxuser/Documents/LLM_vulnerabilite/.venv/node-tools/node_modules/promptfoo/dist/src/providers-BUaNtf-O.js:18150:41)
+    at async PythonWorker.call (file:///home/machinaxuser/Documents/LLM_vulnerabilite/.venv/node-tools/node_modules/promptfoo/dist/src/providers-BUaNtf-O.js:18102:11)
+    at async PythonProvider.executePythonScript (file:///home/machinaxuser/Documents/LLM_vulnerabilite/.venv/node-tools/node_modules/promptfoo/dist/src/providers-BUaNtf-O.js:18591:19)
+    at async ProviderRateLimitState.executeWithRetry (file:///home/machinaxuser/Documents/LLM_vulnerabilite/.venv/node-tools/node_modules/promptfoo/dist/src/shared-DYKPCo-p.js:646:20)
+    at async RateLimitRegistry.execute (file:///home/machinaxuser/Documents/LLM_vulnerabilite/.venv/node-tools/node_modules/promptfoo/dist/src/shared-DYKPCo-p.js:875:19)
+    at async callActiveProvider (file:///home/machinaxuser/Documents/LLM_vulnerabilite/.venv/node-tools/node_modules/promptfoo/dist/src/evaluator-DlYW7Rgb.js:7771:39)
+    at async callProviderForRunEval (file:///home/machinaxuser/Documents/LLM_vulnerabilite/.venv/node-tools/node_modules/promptfoo/dist/src/evaluator-DlYW7Rgb.js:7675:19)
+    at async file:///home/machinaxuser/Documents/LLM_vulnerabilite/.venv/node-tools/node_modules/promptfoo/dist/src/evaluator-DlYW7Rgb.js:8056:25
+    at async runEvalInternal (file:///home/machinaxuser/Documents/LLM_vulnerabilite/.venv/node-tools/node_modules/promptfoo/dist/src/evaluator-DlYW7Rgb.js:8132:22)
+    at async Evaluator.runEvalStepAfterBeforeEach (file:///home/machinaxuser/Documents/LLM_vulnerabilite/.venv/node-tools/node_modules/promptfoo/dist/src/evaluator-DlYW7Rgb.js:9127:16)",
+python:live_provider.py,course-llm-live,live_provider.py,64367ed8138313dac6eb515cdbe1d4890752fcd938bd9fbc456fa0fdad36b4dd,0,javascript/05_deser_yaml.js,14,yes,,PARSE_ERROR,parse_error,"Custom function returned false
+try {
+  const obj = typeof output === 'string' ? JSON.parse(output) : output;
+  const actual = String(obj.is_vuln || '').toLowerCase();
+  const expected = String(context.vars.label || '').toLowerCase();
+  return actual === expected ? 1 : 0;
+} catch (_) {
+  return 0;
+}","The main issue is that `yaml.load(req.body)` parses untrusted user input with an unsafe YAML loader, which can allow code execution, object injection, or denial-of-service attacks depending on the `js-yaml` version and schema. The handler also ignores errors, does not validate that `req.body` is a string or bounded in size, and never sends a response, so the request may hang. Use `safeLoad`/safe schema parsing, validate input, handle errors, and return a response."
+python:live_provider.py,course-llm-live,live_provider.py,dcc87425f72de214aa226c3d92de4ae20404e4136ec4cddbd147fa18af70dfea,1,javascript/05_deser_yaml.js,14,yes,yes,TP,,,"{""is_vuln"":""yes"",""cwe"":""CWE-502"",""title"":""Unsafe YAML Deserialization"",""rationale"":""The endpoint passes untrusted request body data directly to yaml.load(). With vulnerable js-yaml versions or unsafe schemas, YAML deserialization can instantiate dangerous JavaScript types or trigger code execution. It should use a safe loader/schema or avoid deserializing untrusted YAML.""}"
+python:live_provider.py,course-llm-live,live_provider.py,64367ed8138313dac6eb515cdbe1d4890752fcd938bd9fbc456fa0fdad36b4dd,0,javascript/06_crypto_md5.js,15,yes,,PARSE_ERROR,parse_error,"Custom function returned false
+try {
+  const obj = typeof output === 'string' ? JSON.parse(output) : output;
+  const actual = String(obj.is_vuln || '').toLowerCase();
+  const expected = String(context.vars.label || '').toLowerCase();
+  return actual === expected ? 1 : 0;
+} catch (_) {
+  return 0;
+}","The main issue is the use of MD5 via `crypto.createHash('md5')`, which is cryptographically broken and unsuitable for security-sensitive hashing (CWE-327). MD5 is vulnerable to collision attacks and is far too fast for password hashing; if this endpoint hashes passwords, it also lacks salting and a slow password-hashing algorithm like bcrypt, scrypt, or Argon2. Additionally, `req.body.p` is used without validation or error handling, so a missing or non-string value could throw an error or produce unexpected behavior."
+python:live_provider.py,course-llm-live,live_provider.py,dcc87425f72de214aa226c3d92de4ae20404e4136ec4cddbd147fa18af70dfea,1,javascript/06_crypto_md5.js,15,yes,yes,TP,,,"{
+  ""is_vuln"": ""yes"",
+  ""cwe"": ""CWE-327"",
+  ""title"": ""Use of Broken MD5 Hash Algorithm"",
+  ""rationale"": ""The code uses MD5 (crypto.createHash('md5')) to hash user-controlled input. MD5 is cryptographically broken and unsuitable for security-sensitive hashing because it is vulnerable to collision attacks, making it a risky cryptographic algorithm (CWE-327).""
+}"
+python:live_provider.py,course-llm-live,live_provider.py,64367ed8138313dac6eb515cdbe1d4890752fcd938bd9fbc456fa0fdad36b4dd,0,javascript/07_eval.js,16,yes,,PARSE_ERROR,parse_error,"Custom function returned false
+try {
+  const obj = typeof output === 'string' ? JSON.parse(output) : output;
+  const actual = String(obj.is_vuln || '').toLowerCase();
+  const expected = String(context.vars.label || '').toLowerCase();
+  return actual === expected ? 1 : 0;
+} catch (_) {
+  return 0;
+}","The code is critically unsafe because it passes `req.body.code` directly into `eval()`, allowing an attacker to execute arbitrary JavaScript on the server. This is a classic code injection / remote code execution vulnerability (CWE-94) and can lead to full server compromise. It also lacks input validation and error handling, so malformed input may crash the request or expose stack details."
+python:live_provider.py,course-llm-live,live_provider.py,dcc87425f72de214aa226c3d92de4ae20404e4136ec4cddbd147fa18af70dfea,1,javascript/07_eval.js,16,yes,yes,TP,,,"{
+  ""is_vuln"": ""yes"",
+  ""cwe"": ""CWE-94"",
+  ""title"": ""Code Injection via eval of User Input"",
+  ""rationale"": ""The route directly evaluates req.body.code with eval, allowing an attacker to execute arbitrary JavaScript in the server context.""
+}"
+python:live_provider.py,course-llm-live,live_provider.py,64367ed8138313dac6eb515cdbe1d4890752fcd938bd9fbc456fa0fdad36b4dd,0,javascript/08_template_xss.js,17,yes,,PARSE_ERROR,parse_error,"Custom function returned false
+try {
+  const obj = typeof output === 'string' ? JSON.parse(output) : output;
+  const actual = String(obj.is_vuln || '').toLowerCase();
+  const expected = String(context.vars.label || '').toLowerCase();
+  return actual === expected ? 1 : 0;
+} catch (_) {
+  return 0;
+}","The code is vulnerable to reflected cross-site scripting (XSS, CWE-79) because it inserts `req.query.name` directly into an HTML response without escaping or validation. An attacker can supply a crafted `name` value containing HTML/JavaScript, such as `<script>alert(1)</script>`, which the browser will render and execute. Since `res.send` defaults to a `text/html` content type for strings, this is exploitable. The value should be properly HTML-encoded or handled through a templating engine with autoescaping, and ideally validated or sanitized."
+python:live_provider.py,course-llm-live,live_provider.py,dcc87425f72de214aa226c3d92de4ae20404e4136ec4cddbd147fa18af70dfea,1,javascript/08_template_xss.js,17,yes,yes,TP,,,"{""is_vuln"":""yes"",""cwe"":""CWE-79"",""title"":""Reflected XSS via unescaped query parameter"",""rationale"":""The route interpolates req.query.name directly into an HTML response without output encoding or sanitization, allowing an attacker to inject arbitrary HTML/JavaScript through the name query parameter and execute script in the victim's browser.""}"
+python:live_provider.py,course-llm-live,live_provider.py,64367ed8138313dac6eb515cdbe1d4890752fcd938bd9fbc456fa0fdad36b4dd,0,javascript/09_path_trav.js,18,yes,,PARSE_ERROR,parse_error,"Custom function returned false
+try {
+  const obj = typeof output === 'string' ? JSON.parse(output) : output;
+  const actual = String(obj.is_vuln || '').toLowerCase();
+  const expected = String(context.vars.label || '').toLowerCase();
+  return actual === expected ? 1 : 0;
+} catch (_) {
+  return 0;
+}","The route is vulnerable to path traversal (CWE-22): `req.query.n` is attacker-controlled and is concatenated directly into a filesystem path without validation or normalization, so an attacker can use `../` sequences to read arbitrary files outside the intended directory. It also uses `fs.readFileSync`, which blocks the Node.js event loop during file reads, and any read error is unhandled and can crash the server."
+python:live_provider.py,course-llm-live,live_provider.py,dcc87425f72de214aa226c3d92de4ae20404e4136ec4cddbd147fa18af70dfea,1,javascript/09_path_trav.js,18,yes,yes,TP,,,"{
+  ""is_vuln"": ""yes"",
+  ""cwe"": ""CWE-22"",
+  ""title"": ""Path Traversal in File Read Endpoint"",
+  ""rationale"": ""The endpoint constructs a filesystem path by concatenating a hardcoded '../' with the user-controlled query parameter req.query.n, then passes it directly to fs.readFileSync without validation or sanitization. An attacker can supply traversal sequences such as '../../etc/passwd' to read arbitrary files outside the intended directory, resulting in a path traversal vulnerability.""
+}"
+python:live_provider.py,course-llm-live,live_provider.py,64367ed8138313dac6eb515cdbe1d4890752fcd938bd9fbc456fa0fdad36b4dd,0,javascript/10_path_safe.js,19,no,,PARSE_ERROR,parse_error,"Custom function returned false
+try {
+  const obj = typeof output === 'string' ? JSON.parse(output) : output;
+  const actual = String(obj.is_vuln || '').toLowerCase();
+  const expected = String(context.vars.label || '').toLowerCase();
+  return actual === expected ? 1 : 0;
+} catch (_) {
+  return 0;
+}","The route has several issues: it validates the filename with a regex that allows dots, so names like `..`, `.`, or hidden dotfiles pass, and a missing `n` query isn’t properly rejected because `RegExp.test(undefined)` checks the string `""undefined""`. While the regex blocks slashes, which reduces direct path traversal, it still permits unsafe filenames and would allow access through symlinks inside `safe/`. It also uses `fs.readFileSync` inside the request handler, which blocks the Node.js event loop and can cause performance problems, and there is no error handling for missing files, directories, or read failures. Finally, `res.send` may set a `text/html` content type for string data, which can introduce XSS if the served file contains untrusted HTML or JavaScript."
+python:live_provider.py,course-llm-live,live_provider.py,dcc87425f72de214aa226c3d92de4ae20404e4136ec4cddbd147fa18af70dfea,1,javascript/10_path_safe.js,19,no,no,TN,,,"{""is_vuln"":""no"",""cwe"":null,""title"":""No exploitable path traversal"",""rationale"":""The input is strictly validated with /^[\\w\\-.]+$/, which permits only word characters, hyphens, and dots. It does not allow path separators such as '/' or '\\\\'. Although '..' is allowed, without a slash it cannot traverse to a parent file path, and reading a directory typically fails. Therefore the code does not appear vulnerable to path traversal via the provided input.""}"
+python:live_provider.py,course-llm-live,live_provider.py,64367ed8138313dac6eb515cdbe1d4890752fcd938bd9fbc456fa0fdad36b4dd,0,java/01_sql_concat.java,20,yes,,PARSE_ERROR,parse_error,"Custom function returned false
+try {
+  const obj = typeof output === 'string' ? JSON.parse(output) : output;
+  const actual = String(obj.is_vuln || '').toLowerCase();
+  const expected = String(context.vars.label || '').toLowerCase();
+  return actual === expected ? 1 : 0;
+} catch (_) {
+  return 0;
+}","The code is vulnerable to SQL injection: user input from `request.getParameter(""u"")` is concatenated directly into a SQL query, so an attacker can supply crafted input to alter the query, bypass authentication, or read, modify, or delete data. It also creates a `Statement` without closing it or using a prepared statement, causing a potential resource leak. Use a `PreparedStatement` with parameter binding and close it properly, preferably with try-with-resources."
+python:live_provider.py,course-llm-live,live_provider.py,dcc87425f72de214aa226c3d92de4ae20404e4136ec4cddbd147fa18af70dfea,1,java/01_sql_concat.java,20,yes,yes,TP,,,"{""is_vuln"":""yes"",""cwe"":""CWE-89"",""title"":""SQL Injection via Unsanitized User Input in SQL Query"",""rationale"":""The code directly concatenates the HTTP request parameter 'u' into a SQL SELECT statement without parameterization or sanitization, allowing an attacker to inject arbitrary SQL and manipulate the query.""}"
+python:live_provider.py,course-llm-live,live_provider.py,64367ed8138313dac6eb515cdbe1d4890752fcd938bd9fbc456fa0fdad36b4dd,0,java/02_sql_param.java,21,no,,PARSE_ERROR,parse_error,"Custom function returned false
+try {
+  const obj = typeof output === 'string' ? JSON.parse(output) : output;
+  const actual = String(obj.is_vuln || '').toLowerCase();
+  const expected = String(context.vars.label || '').toLowerCase();
+  return actual === expected ? 1 : 0;
+} catch (_) {
+  return 0;
+}","The query itself is parameterized, so it avoids direct SQL injection from `u`. However, the code has several issues: `request.getParameter(""u"")` may return `null` or arbitrary input without validation; `ps.execute()` is used for a `SELECT` instead of `executeQuery()`, and no `ResultSet` is handled, so the result is effectively ignored; `SELECT *` is inefficient and may expose more data than needed; and the `PreparedStatement`/connection/result resources are not closed, causing potential resource leaks."
+python:live_provider.py,course-llm-live,live_provider.py,dcc87425f72de214aa226c3d92de4ae20404e4136ec4cddbd147fa18af70dfea,1,java/02_sql_param.java,21,no,no,TN,,,"{""is_vuln"":""no"",""cwe"":null,""title"":""Parameterized query prevents SQL injection"",""rationale"":""The code uses a PreparedStatement with a placeholder (?) and binds the user-controlled parameter via ps.setString(1, u). This safely separates SQL code from data, preventing SQL injection. No other vulnerability is evident in the provided snippet.""}"
+python:live_provider.py,course-llm-live,live_provider.py,64367ed8138313dac6eb515cdbe1d4890752fcd938bd9fbc456fa0fdad36b4dd,0,java/03_cmdi.java,22,yes,,PARSE_ERROR,parse_error,"Custom function returned false
+try {
+  const obj = typeof output === 'string' ? JSON.parse(output) : output;
+  const actual = String(obj.is_vuln || '').toLowerCase();
+  const expected = String(context.vars.label || '').toLowerCase();
+  return actual === expected ? 1 : 0;
+} catch (_) {
+  return 0;
+}","The code is vulnerable to OS command injection (CWE-78): it takes an untrusted HTTP parameter `p` and concatenates it directly into a command string passed to `Runtime.exec`. An attacker can manipulate the command arguments or, depending on platform/execution behavior, inject additional commands, potentially leading to arbitrary command execution or unintended file access. The input should be strictly validated or avoided entirely, and `ProcessBuilder` should be used with a fixed command and separate arguments rather than building a shell command from user input."
+python:live_provider.py,course-llm-live,live_provider.py,dcc87425f72de214aa226c3d92de4ae20404e4136ec4cddbd147fa18af70dfea,1,java/03_cmdi.java,22,yes,yes,TP,,,"{""is_vuln"":""yes"",""cwe"":""CWE-78"",""title"":""OS Command Injection via Unsanitized Request Parameter"",""rationale"":""The code takes user-controlled input from request.getParameter(\""p\"") and concatenates it directly into a shell command executed by Runtime.getRuntime().exec(\""ls \""+p). An attacker can inject shell metacharacters or additional commands to execute arbitrary OS commands.""}"
+python:live_provider.py,course-llm-live,live_provider.py,64367ed8138313dac6eb515cdbe1d4890752fcd938bd9fbc456fa0fdad36b4dd,0,java/04_deser.java,23,yes,,PARSE_ERROR,parse_error,"Custom function returned false
+try {
+  const obj = typeof output === 'string' ? JSON.parse(output) : output;
+  const actual = String(obj.is_vuln || '').toLowerCase();
+  const expected = String(context.vars.label || '').toLowerCase();
+  return actual === expected ? 1 : 0;
+} catch (_) {
+  return 0;
+}","The code deserializes Java objects directly from an HTTP request stream using `ObjectInputStream.readObject()` without any validation, type restrictions, or allowlist. If an attacker can control that request body, this is unsafe Java deserialization (CWE-502), which can lead to remote code execution, denial of service, or other attacks via malicious gadget chains. The stream is also not closed safely, and the deserialized object type is unchecked."
+python:live_provider.py,course-llm-live,live_provider.py,dcc87425f72de214aa226c3d92de4ae20404e4136ec4cddbd147fa18af70dfea,1,java/04_deser.java,23,yes,yes,TP,,,"{
+  ""is_vuln"": ""yes"",
+  ""cwe"": ""CWE-502"",
+  ""title"": ""Unsafe Java Deserialization of Untrusted Data"",
+  ""rationale"": ""The code constructs an ObjectInputStream directly from an HTTP request input stream and calls readObject(), deserializing attacker-controlled data. Without validation, allowlisting, or safe deserialization controls, this can lead to remote code execution or other severe impacts via malicious serialized objects.""
+}"
+python:live_provider.py,course-llm-live,live_provider.py,64367ed8138313dac6eb515cdbe1d4890752fcd938bd9fbc456fa0fdad36b4dd,0,java/05_hash_md5.java,24,yes,,PARSE_ERROR,parse_error,"Custom function returned false
+try {
+  const obj = typeof output === 'string' ? JSON.parse(output) : output;
+  const actual = String(obj.is_vuln || '').toLowerCase();
+  const expected = String(context.vars.label || '').toLowerCase();
+  return actual === expected ? 1 : 0;
+} catch (_) {
+  return 0;
+}","The code uses MD5, which is cryptographically broken and unsuitable for password hashing; it is fast and vulnerable to collision, brute-force, and rainbow-table attacks, especially without a salt or key-stretching. It also calls `pwd.getBytes()` without specifying a character encoding, making the byte representation platform-dependent, and it discards the returned digest, so the operation has no usable effect as written."
+python:live_provider.py,course-llm-live,live_provider.py,dcc87425f72de214aa226c3d92de4ae20404e4136ec4cddbd147fa18af70dfea,1,java/05_hash_md5.java,24,yes,yes,TP,,,"{
+  ""is_vuln"": ""yes"",
+  ""cwe"": ""CWE-327"",
+  ""title"": ""Use of MD5 for Password Hashing"",
+  ""rationale"": ""MD5 is a cryptographically broken hash function and is unsuitable for password hashing or other security-sensitive contexts. It is vulnerable to collision attacks and, for passwords, fast to brute-force. The code uses MessageDigest.getInstance(\""MD5\"") and md.digest(pwd.getBytes()) to hash a password, which can lead to password compromise if the resulting hash is used for authentication or storage.""
+}"
+python:live_provider.py,course-llm-live,live_provider.py,64367ed8138313dac6eb515cdbe1d4890752fcd938bd9fbc456fa0fdad36b4dd,0,java/06_xxe.java,25,yes,,PARSE_ERROR,parse_error,"Custom function returned false
+try {
+  const obj = typeof output === 'string' ? JSON.parse(output) : output;
+  const actual = String(obj.is_vuln || '').toLowerCase();
+  const expected = String(context.vars.label || '').toLowerCase();
+  return actual === expected ? 1 : 0;
+} catch (_) {
+  return 0;
+}","The code parses untrusted XML directly from the HTTP request without configuring the `DocumentBuilderFactory` to prevent XML External Entity (XXE) attacks (CWE-611). By default, the parser may process DTDs and external entities, allowing an attacker to read local files, perform SSRF, cause denial of service, or expose sensitive data. It should disable DTDs/external entities and enable secure processing features before creating the `DocumentBuilder`."
+python:live_provider.py,course-llm-live,live_provider.py,dcc87425f72de214aa226c3d92de4ae20404e4136ec4cddbd147fa18af70dfea,1,java/06_xxe.java,25,yes,yes,TP,,,"{""is_vuln"":""yes"",""cwe"":""CWE-611"",""title"":""XML External Entity (XXE) Injection"",""rationale"":""The code parses XML from an untrusted request input stream using a default DocumentBuilderFactory without disabling external entity resolution or DTD processing. This can allow XXE attacks, including file disclosure, SSRF, or denial of service, if the XML parser processes malicious external entities.""}"
+python:live_provider.py,course-llm-live,live_provider.py,64367ed8138313dac6eb515cdbe1d4890752fcd938bd9fbc456fa0fdad36b4dd,0,java/07_xxe_safe.java,26,no,,PARSE_ERROR,parse_error,"Custom function returned false
+try {
+  const obj = typeof output === 'string' ? JSON.parse(output) : output;
+  const actual = String(obj.is_vuln || '').toLowerCase();
+  const expected = String(context.vars.label || '').toLowerCase();
+  return actual === expected ? 1 : 0;
+} catch (_) {
+  return 0;
+}","The code attempts to harden an XML parser by disallowing DOCTYPE declarations, which helps prevent XXE attacks, but it is incomplete and may fail. `setFeature` can throw `ParserConfigurationException`, which must be handled or declared, and the feature may not be supported by every parser implementation, causing an exception. For stronger protection you should also disable external general/parameter entities, disable XInclude, expand entity references off, and enable secure processing."
+python:live_provider.py,course-llm-live,live_provider.py,dcc87425f72de214aa226c3d92de4ae20404e4136ec4cddbd147fa18af70dfea,1,java/07_xxe_safe.java,26,no,no,TN,,,"{""is_vuln"":""no"",""cwe"":null,""title"":""Secure XML parser configuration"",""rationale"":""Setting disallow-doctype-decl to true prevents DTD processing and blocks XXE attacks. The snippet only configures the factory and does not parse untrusted XML, so no vulnerability is present.""}"
+python:live_provider.py,course-llm-live,live_provider.py,64367ed8138313dac6eb515cdbe1d4890752fcd938bd9fbc456fa0fdad36b4dd,0,java/08_xss_java.java,27,yes,,PARSE_ERROR,parse_error,"Custom function returned false
+try {
+  const obj = typeof output === 'string' ? JSON.parse(output) : output;
+  const actual = String(obj.is_vuln || '').toLowerCase();
+  const expected = String(context.vars.label || '').toLowerCase();
+  return actual === expected ? 1 : 0;
+} catch (_) {
+  return 0;
+}","The code reflects the user-controlled `request.getParameter(""name"")` value directly into an HTML response without output encoding or sanitization. This is a classic reflected cross-site scripting (XSS) vulnerability (CWE-79): an attacker could provide a malicious `name` value, such as `<script>...</script>`, and have it executed in a victim’s browser. The parameter should be HTML-escaped before being inserted into markup, or better yet validated/encoded using a context-appropriate escaping library."
+python:live_provider.py,course-llm-live,live_provider.py,dcc87425f72de214aa226c3d92de4ae20404e4136ec4cddbd147fa18af70dfea,1,java/08_xss_java.java,27,yes,yes,TP,,,"{""is_vuln"":""yes"",""cwe"":""CWE-79"",""title"":""Reflected XSS in HTML output"",""rationale"":""The code writes the untrusted request parameter \""name\"" directly into an HTML response without output encoding or validation. An attacker can supply a crafted value containing HTML or JavaScript, causing script execution in the victim's browser.""}"
+python:live_provider.py,course-llm-live,live_provider.py,64367ed8138313dac6eb515cdbe1d4890752fcd938bd9fbc456fa0fdad36b4dd,0,java/09_path_trav.java,28,yes,,PARSE_ERROR,parse_error,"Custom function returned false
+try {
+  const obj = typeof output === 'string' ? JSON.parse(output) : output;
+  const actual = String(obj.is_vuln || '').toLowerCase();
+  const expected = String(context.vars.label || '').toLowerCase();
+  return actual === expected ? 1 : 0;
+} catch (_) {
+  return 0;
+}","The code reads a file path built from an unvalidated user-controlled parameter (`n`) and prepends `""..""`, making it vulnerable to path traversal (CWE-22). An attacker could supply values like `../../etc/passwd` or other crafted paths to escape the intended directory and read arbitrary files accessible to the application. It should validate/normalize the path, reject traversal sequences, and constrain reads to an allowed base directory."
+python:live_provider.py,course-llm-live,live_provider.py,dcc87425f72de214aa226c3d92de4ae20404e4136ec4cddbd147fa18af70dfea,1,java/09_path_trav.java,28,yes,yes,TP,,,"{""is_vuln"":""yes"",""cwe"":""CWE-22"",""title"":""Path Traversal via Unvalidated File Path Parameter"",""rationale"":""The user-controlled parameter n is passed directly into Paths.get without validation or sanitization and then used by Files.readString. An attacker can supply traversal sequences or crafted paths to read files outside the intended directory, leading to path traversal.""}"
+python:live_provider.py,course-llm-live,live_provider.py,64367ed8138313dac6eb515cdbe1d4890752fcd938bd9fbc456fa0fdad36b4dd,0,java/10_safe.java,29,no,,PARSE_ERROR,parse_error,"Custom function returned false
+try {
+  const obj = typeof output === 'string' ? JSON.parse(output) : output;
+  const actual = String(obj.is_vuln || '').toLowerCase();
+  const expected = String(context.vars.label || '').toLowerCase();
+  return actual === expected ? 1 : 0;
+} catch (_) {
+  return 0;
+}","This line is valid Java and will print `Hello` when executed. The only potential issue is that it is just a statement, not a complete runnable program; it must be placed inside a method such as `main` within a class. There are no syntax errors in the line itself."
+python:live_provider.py,course-llm-live,live_provider.py,dcc87425f72de214aa226c3d92de4ae20404e4136ec4cddbd147fa18af70dfea,1,java/10_safe.java,29,no,no,TN,,,"{""is_vuln"":""no"",""cwe"":null,""title"":""No vulnerability detected"",""rationale"":""The code simply prints a fixed string to standard output and does not process untrusted input, execute commands, access resources, or perform any security-sensitive operation.""}"

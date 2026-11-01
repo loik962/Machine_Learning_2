@@ -1,0 +1,394 @@
+[
+  {
+    "tool": "checkov",
+    "file": "terraform/main.tf",
+    "issue_id": "CKV_AWS_277",
+    "title": "Ensure no security groups allow ingress from 0.0.0.0:0 to port -1",
+    "proposed_fix": "Replace the all-protocol ingress rule with least-privilege rules, e.g. ingress { from_port=443; to_port=443; protocol=\"tcp\"; cidr_blocks=[var.trusted_cidr]; description=\"HTTPS from trusted CIDR\" }.",
+    "justification": "AWS security groups should grant least privilege; removing protocol -1 and 0.0.0.0/0 prevents unrestricted inbound access. See AWS VPC security group rules documentation."
+  },
+  {
+    "tool": "checkov",
+    "file": "terraform/main.tf",
+    "issue_id": "CKV_AWS_25",
+    "title": "Ensure no security groups allow ingress from 0.0.0.0:0 to port 3389",
+    "proposed_fix": "Remove public RDP ingress; if RDP is required, use ingress { from_port=3389; to_port=3389; protocol=\"tcp\"; cidr_blocks=[var.admin_cidr]; description=\"RDP from admin CIDR\" }.",
+    "justification": "Exposing RDP to the internet enables brute-force and exploitation. Restrict to trusted admin CIDRs per AWS security group best practices."
+  },
+  {
+    "tool": "checkov",
+    "file": "terraform/main.tf",
+    "issue_id": "CKV_AWS_24",
+    "title": "Ensure no security groups allow ingress from 0.0.0.0:0 to port 22",
+    "proposed_fix": "Remove public SSH ingress; if SSH is required, use ingress { from_port=22; to_port=22; protocol=\"tcp\"; cidr_blocks=[var.admin_cidr]; description=\"SSH from admin CIDR\" }.",
+    "justification": "Internet-exposed SSH increases attack surface. Restrict to trusted CIDRs per AWS security group best practices."
+  },
+  {
+    "tool": "checkov",
+    "file": "terraform/main.tf",
+    "issue_id": "CKV_AWS_382",
+    "title": "Ensure no security groups allow egress from 0.0.0.0:0 to port -1",
+    "proposed_fix": "Replace unrestricted egress with specific egress rules, e.g. egress { from_port=443; to_port=443; protocol=\"tcp\"; cidr_blocks=[var.allowed_egress_cidr]; description=\"HTTPS egress\" }.",
+    "justification": "Restricting egress reduces data exfiltration and lateral movement. See AWS security group egress rule guidance."
+  },
+  {
+    "tool": "checkov",
+    "file": "terraform/main.tf",
+    "issue_id": "CKV_AWS_23",
+    "title": "Ensure every security group and rule has a description",
+    "proposed_fix": "Add description to each ingress and egress block, e.g. description=\"HTTPS from trusted CIDR\" and description=\"HTTPS egress to approved services\".",
+    "justification": "Descriptions improve auditability and incident response. AWS security group rules support and recommend descriptions."
+  },
+  {
+    "tool": "checkov",
+    "file": "terraform/main.tf",
+    "issue_id": "CKV_AWS_260",
+    "title": "Ensure no security groups allow ingress from 0.0.0.0:0 to port 80",
+    "proposed_fix": "Remove public HTTP ingress; if HTTP is required, use ingress { from_port=80; to_port=80; protocol=\"tcp\"; cidr_blocks=[var.trusted_cidr]; description=\"HTTP from trusted CIDR\" } or redirect to HTTPS.",
+    "justification": "Public HTTP exposes unencrypted traffic. Restrict or redirect per AWS security group best practices."
+  },
+  {
+    "tool": "checkov",
+    "file": "terraform/main.tf",
+    "issue_id": "CKV_AWS_288",
+    "title": "Ensure IAM policies does not allow data exfiltration",
+    "proposed_fix": "Replace Action=\"*\" and Resource=\"*\" with explicit read actions/resources and add Condition constraints, e.g. Action=[\"s3:GetObject\"], Resource=[\"arn:aws:s3:::demo-public-assets-example-llmsec/*\"], Condition={StringEquals={\"aws:PrincipalTag/team\"=\"app\"}}.",
+    "justification": "Wildcard IAM permissions allow broad data access. Scope actions/resources and add conditions per AWS IAM least privilege guidance."
+  },
+  {
+    "tool": "checkov",
+    "file": "terraform/main.tf",
+    "issue_id": "CKV_AWS_286",
+    "title": "Ensure IAM policies does not allow privilege escalation",
+    "proposed_fix": "Remove iam:*, sts:AssumeRole, and other escalation-capable actions from the policy; grant only required actions on specific resources, e.g. Action=[\"s3:GetObject\"], Resource=[\"arn:aws:s3:::demo-public-assets-example-llmsec/*\"].",
+    "justification": "IAM wildcards can enable privilege escalation. Use least privilege and avoid self-modifying IAM permissions per AWS IAM best practices."
+  },
+  {
+    "tool": "checkov",
+    "file": "terraform/main.tf",
+    "issue_id": "CKV_AWS_287",
+    "title": "Ensure IAM policies does not allow credentials exposure",
+    "proposed_fix": "Remove actions like iam:Get*, iam:List*, secretsmanager:GetSecretValue, and ssm:GetParameter unless required; replace Action=\"*\" Resource=\"*\" with explicit scoped actions/resources.",
+    "justification": "Broad read permissions can expose credentials and secrets. Scope to required secrets and resources per AWS IAM least privilege guidance."
+  },
+  {
+    "tool": "checkov",
+    "file": "terraform/main.tf",
+    "issue_id": "CKV_AWS_289",
+    "title": "Ensure IAM policies does not allow permissions management / resource exposure without constraints",
+    "proposed_fix": "Remove permissions-management actions such as iam:Attach*, iam:Put*, iam:Create*, and iam:PassRole; grant only required actions on specific resources and add Condition constraints.",
+    "justification": "Permissions-management wildcards can alter access controls. AWS recommends least privilege and explicit resource scoping for IAM policies."
+  },
+  {
+    "tool": "checkov",
+    "file": "terraform/main.tf",
+    "issue_id": "CKV_AWS_290",
+    "title": "Ensure IAM policies does not allow write access without constraints",
+    "proposed_fix": "Replace Action=\"*\" Resource=\"*\" with explicit write actions and resources, e.g. Action=[\"s3:PutObject\"], Resource=[\"arn:aws:s3:::demo-public-assets-example-llmsec/*\"], and add Condition constraints.",
+    "justification": "Unconstrained write access can modify or destroy resources. Scope write permissions per AWS IAM least privilege guidance."
+  },
+  {
+    "tool": "checkov",
+    "file": "terraform/main.tf",
+    "issue_id": "CKV_AWS_62",
+    "title": "Ensure IAM policies that allow full \"*-*\" administrative privileges are not created",
+    "proposed_fix": "Replace the admin policy statement with least-privilege statements: remove Action=\"*\" and Resource=\"*\", list only required actions and ARNs, and add conditions where possible.",
+    "justification": "Full administrative privileges violate least privilege. See AWS IAM policy best practices and Checkov CKV_AWS_62 guidance."
+  },
+  {
+    "tool": "checkov",
+    "file": "terraform/main.tf",
+    "issue_id": "CKV_AWS_63",
+    "title": "Ensure no IAM policies documents allow \"*\" as a statement's actions",
+    "proposed_fix": "Change Action=\"*\" to explicit actions, e.g. Action=[\"s3:GetObject\",\"s3:ListBucket\"], and scope Resource to required ARNs.",
+    "justification": "Wildcard actions grant excessive permissions. Use explicit actions per AWS IAM least privilege guidance."
+  },
+  {
+    "tool": "checkov",
+    "file": "terraform/main.tf",
+    "issue_id": "CKV_AWS_355",
+    "title": "Ensure no IAM policies documents allow \"*\" as a statement's resource for restrictable actions",
+    "proposed_fix": "Replace Resource=\"*\" with specific ARNs, e.g. Resource=[\"arn:aws:s3:::demo-public-assets-example-llmsec\",\"arn:aws:s3:::demo-public-assets-example-llmsec/*\"].",
+    "justification": "Restrictable actions should be limited to required resources. See AWS IAM resource-level permissions documentation."
+  },
+  {
+    "tool": "checkov",
+    "file": "terraform/main.tf",
+    "issue_id": "CKV2_AWS_6",
+    "title": "Ensure that S3 bucket has a Public Access block",
+    "proposed_fix": "Add resource aws_s3_bucket_public_access_block \"public_assets\" { bucket=aws_s3_bucket.public_assets.id; block_public_acls=true; block_public_policy=true; ignore_public_acls=true; restrict_public_buckets=true }.",
+    "justification": "S3 Block Public Access prevents accidental public exposure. See AWS S3 Block Public Access documentation."
+  },
+  {
+    "tool": "checkov",
+    "file": "terraform/main.tf",
+    "issue_id": "CKV2_AWS_62",
+    "title": "Ensure S3 buckets should have event notifications enabled",
+    "proposed_fix": "Add aws_s3_bucket_notification with bucket=aws_s3_bucket.public_assets.id and a target event, e.g. lambda_function { lambda_function_arn=var.notification_lambda_arn; events=[\"s3:ObjectCreated:*\"] }.",
+    "justification": "Event notifications improve monitoring and response to bucket changes. See AWS S3 event notification documentation."
+  },
+  {
+    "tool": "checkov",
+    "file": "terraform/main.tf",
+    "issue_id": "CKV2_AWS_5",
+    "title": "Ensure that Security Groups are attached to another resource",
+    "proposed_fix": "Attach aws_security_group.open_sg to an approved resource, e.g. add vpc_security_group_ids=[aws_security_group.open_sg.id] to the relevant aws_instance, ENI, or load balancer.",
+    "justification": "Unattached security groups provide no protection and may indicate drift. AWS recommends associating security groups with resources."
+  },
+  {
+    "tool": "checkov",
+    "file": "terraform/main.tf",
+    "issue_id": "CKV_AWS_20",
+    "title": "S3 Bucket has an ACL defined which allows public READ access.",
+    "proposed_fix": "Change acl=\"public-read\" to acl=\"private\" or remove the ACL line; serve public content via CloudFront/OAC or a scoped bucket policy instead.",
+    "justification": "Public-read ACLs expose objects directly. AWS recommends disabling ACLs and using bucket policies/CloudFront for controlled access."
+  },
+  {
+    "tool": "checkov",
+    "file": "terraform/main.tf",
+    "issue_id": "CKV_AWS_145",
+    "title": "Ensure that S3 buckets are encrypted with KMS by default",
+    "proposed_fix": "Add aws_s3_bucket_server_side_encryption_configuration with bucket=aws_s3_bucket.public_assets.id and rule { apply_server_side_encryption_by_default { sse_algorithm=\"aws:kms\" } }.",
+    "justification": "Default KMS encryption protects data at rest with customer-managed keys. See AWS S3 default encryption documentation."
+  },
+  {
+    "tool": "checkov",
+    "file": "terraform/main.tf",
+    "issue_id": "CKV_AWS_144",
+    "title": "Ensure that S3 bucket has cross-region replication enabled",
+    "proposed_fix": "Add aws_s3_bucket_replication_configuration with role=aws_iam_role.replication.arn, bucket=aws_s3_bucket.public_assets.id, and rule { status=\"Enabled\"; destination { bucket=aws_s3_bucket.replica.arn } }.",
+    "justification": "Cross-region replication improves durability and disaster recovery. See AWS S3 replication documentation."
+  },
+  {
+    "tool": "checkov",
+    "file": "terraform/main.tf",
+    "issue_id": "CKV_AWS_21",
+    "title": "Ensure all data stored in the S3 bucket have versioning enabled",
+    "proposed_fix": "Add aws_s3_bucket_versioning \"public_assets\" { bucket=aws_s3_bucket.public_assets.id; versioning_configuration { status=\"Enabled\" } }.",
+    "justification": "Versioning protects against accidental deletion and overwrite. See AWS S3 versioning documentation."
+  },
+  {
+    "tool": "checkov",
+    "file": "terraform/main.tf",
+    "issue_id": "CKV_AWS_18",
+    "title": "Ensure the S3 bucket has access logging enabled",
+    "proposed_fix": "Add aws_s3_bucket_logging \"public_assets\" { bucket=aws_s3_bucket.public_assets.id; target_bucket=var.log_bucket_id; target_prefix=\"log/\" }.",
+    "justification": "Access logging provides audit trails for S3 requests. See AWS S3 server access logging documentation."
+  },
+  {
+    "tool": "checkov",
+    "file": "terraform/main.tf",
+    "issue_id": "CKV2_AWS_61",
+    "title": "Ensure that an S3 bucket has a lifecycle configuration",
+    "proposed_fix": "Add aws_s3_bucket_lifecycle_configuration \"public_assets\" { bucket=aws_s3_bucket.public_assets.id; rule { id=\"expire\"; status=\"Enabled\"; expiration { days=365 } } }.",
+    "justification": "Lifecycle rules manage retention and reduce stale data risk. See AWS S3 lifecycle configuration documentation."
+  },
+  {
+    "tool": "checkov",
+    "file": "terraform/main.tf",
+    "issue_id": "CKV2_AWS_40",
+    "title": "Ensure AWS IAM policy does not allow full IAM privileges",
+    "proposed_fix": "Remove iam:* and full-admin permissions; replace with explicit required actions on specific resources, e.g. Action=[\"s3:GetObject\"], Resource=[\"arn:aws:s3:::demo-public-assets-example-llmsec/*\"].",
+    "justification": "Full IAM privileges allow account takeover. Use least privilege per AWS IAM best practices."
+  },
+  {
+    "tool": "checkov",
+    "file": "k8s/deployment.yaml",
+    "issue_id": "CKV_K8S_23",
+    "title": "Minimize the admission of root containers",
+    "proposed_fix": "Add securityContext: runAsNonRoot=true; runAsUser=10000; and remove privileged/root execution for container web.",
+    "justification": "Running as non-root reduces container breakout impact. See Kubernetes security context and Pod Security Standards."
+  },
+  {
+    "tool": "checkov",
+    "file": "k8s/deployment.yaml",
+    "issue_id": "CKV_K8S_38",
+    "title": "Ensure that Service Account Tokens are only mounted where necessary",
+    "proposed_fix": "Add automountServiceAccountToken=false under spec.template.spec unless the pod explicitly needs Kubernetes API access.",
+    "justification": "Disabling automatic token mounting reduces credential exposure. See Kubernetes service account token documentation."
+  },
+  {
+    "tool": "checkov",
+    "file": "k8s/deployment.yaml",
+    "issue_id": "CKV_K8S_29",
+    "title": "Apply security context to your pods and containers",
+    "proposed_fix": "Add securityContext at pod and container levels: runAsNonRoot=true; runAsUser=10000; privileged=false; allowPrivilegeEscalation=false; readOnlyRootFilesystem=true; capabilities.drop=[\"ALL\"].",
+    "justification": "Explicit security contexts enforce least privilege. See Kubernetes security context documentation."
+  },
+  {
+    "tool": "checkov",
+    "file": "k8s/deployment.yaml",
+    "issue_id": "CKV_K8S_12",
+    "title": "Memory requests should be set",
+    "proposed_fix": "Add resources.requests.memory to container web, e.g. resources: requests: { cpu: \"100m\"; memory: \"128Mi\" }.",
+    "justification": "Memory requests aid scheduling and prevent resource starvation. See Kubernetes resource management documentation."
+  },
+  {
+    "tool": "checkov",
+    "file": "k8s/deployment.yaml",
+    "issue_id": "CKV_K8S_21",
+    "title": "The default namespace should not be used",
+    "proposed_fix": "Add metadata.namespace: demo to the Deployment and create/use a non-default namespace for the workload.",
+    "justification": "Avoiding the default namespace improves isolation and policy control. See Kubernetes namespace documentation."
+  },
+  {
+    "tool": "checkov",
+    "file": "k8s/deployment.yaml",
+    "issue_id": "CKV_K8S_40",
+    "title": "Containers should run as a high UID to avoid host conflict",
+    "proposed_fix": "Set securityContext.runAsUser: 10000 and runAsNonRoot: true for container web.",
+    "justification": "High UIDs avoid collisions with host users. See Kubernetes security context and Pod Security Standards."
+  },
+  {
+    "tool": "checkov",
+    "file": "k8s/deployment.yaml",
+    "issue_id": "CKV_K8S_37",
+    "title": "Minimize the admission of containers with capabilities assigned",
+    "proposed_fix": "Add securityContext.capabilities.drop: [\"ALL\"] to container web, and add back only explicitly required capabilities.",
+    "justification": "Dropping Linux capabilities reduces privilege. See Kubernetes capabilities and Pod Security Standards."
+  },
+  {
+    "tool": "checkov",
+    "file": "k8s/deployment.yaml",
+    "issue_id": "CKV_K8S_31",
+    "title": "Ensure that the seccomp profile is set to docker/default or runtime/default",
+    "proposed_fix": "Add securityContext.seccompProfile: { type: RuntimeDefault } at pod or container level.",
+    "justification": "Seccomp restricts syscalls and reduces kernel attack surface. See Kubernetes seccomp documentation."
+  },
+  {
+    "tool": "checkov",
+    "file": "k8s/deployment.yaml",
+    "issue_id": "CKV_K8S_13",
+    "title": "Memory limits should be set",
+    "proposed_fix": "Add resources.limits.memory to container web, e.g. resources: limits: { cpu: \"500m\"; memory: \"256Mi\" }.",
+    "justification": "Memory limits prevent runaway resource consumption. See Kubernetes resource management documentation."
+  },
+  {
+    "tool": "checkov",
+    "file": "k8s/deployment.yaml",
+    "issue_id": "CKV_K8S_43",
+    "title": "Image should use digest",
+    "proposed_fix": "Pin image by digest, e.g. image: nginx@sha256:<verified-digest> instead of nginx:latest.",
+    "justification": "Digest pinning ensures immutable image deployment. See Kubernetes image documentation."
+  },
+  {
+    "tool": "checkov",
+    "file": "k8s/deployment.yaml",
+    "issue_id": "CKV_K8S_14",
+    "title": "Image Tag should be fixed - not latest or blank",
+    "proposed_fix": "Replace image: nginx:latest with a fixed version tag, e.g. image: nginx:1.27.0.",
+    "justification": "Fixed tags avoid unpredictable updates. See Kubernetes image best practices."
+  },
+  {
+    "tool": "checkov",
+    "file": "k8s/deployment.yaml",
+    "issue_id": "CKV_K8S_16",
+    "title": "Container should not be privileged",
+    "proposed_fix": "Change securityContext.privileged from true to false for container web, and remove unnecessary privileged capabilities.",
+    "justification": "Privileged containers can escape isolation. See Kubernetes security context and Pod Security Standards."
+  },
+  {
+    "tool": "checkov",
+    "file": "k8s/deployment.yaml",
+    "issue_id": "CKV_K8S_9",
+    "title": "Readiness Probe Should be Configured",
+    "proposed_fix": "Add readinessProbe to container web, e.g. readinessProbe: { httpGet: { path: /; port: 80 }; initialDelaySeconds: 5 }.",
+    "justification": "Readiness probes prevent routing to unhealthy pods. See Kubernetes probes documentation."
+  },
+  {
+    "tool": "checkov",
+    "file": "k8s/deployment.yaml",
+    "issue_id": "CKV_K8S_20",
+    "title": "Containers should not run with allowPrivilegeEscalation",
+    "proposed_fix": "Set securityContext.allowPrivilegeEscalation: false for container web.",
+    "justification": "Disabling privilege escalation prevents setuid/setgid escalation. See Kubernetes security context documentation."
+  },
+  {
+    "tool": "checkov",
+    "file": "k8s/deployment.yaml",
+    "issue_id": "CKV_K8S_11",
+    "title": "CPU limits should be set",
+    "proposed_fix": "Add resources.limits.cpu to container web, e.g. resources: limits: { cpu: \"500m\"; memory: \"256Mi\" }.",
+    "justification": "CPU limits prevent noisy-neighbor resource exhaustion. See Kubernetes resource management documentation."
+  },
+  {
+    "tool": "checkov",
+    "file": "k8s/deployment.yaml",
+    "issue_id": "CKV_K8S_22",
+    "title": "Use read-only filesystem for containers where possible",
+    "proposed_fix": "Set securityContext.readOnlyRootFilesystem: true for container web and mount writable volumes only where required.",
+    "justification": "Read-only root filesystems reduce runtime tampering. See Kubernetes security context documentation."
+  },
+  {
+    "tool": "checkov",
+    "file": "k8s/deployment.yaml",
+    "issue_id": "CKV_K8S_8",
+    "title": "Liveness Probe Should be Configured",
+    "proposed_fix": "Add livenessProbe to container web, e.g. livenessProbe: { httpGet: { path: /; port: 80 }; initialDelaySeconds: 10 }.",
+    "justification": "Liveness probes restart unhealthy containers. See Kubernetes probes documentation."
+  },
+  {
+    "tool": "checkov",
+    "file": "k8s/deployment.yaml",
+    "issue_id": "CKV_K8S_28",
+    "title": "Minimize the admission of containers with the NET_RAW capability",
+    "proposed_fix": "Add securityContext.capabilities.drop: [\"NET_RAW\"] or [\"ALL\"] to container web.",
+    "justification": "Dropping NET_RAW reduces network spoofing risk. See Kubernetes capabilities and Pod Security Standards."
+  },
+  {
+    "tool": "checkov",
+    "file": "k8s/deployment.yaml",
+    "issue_id": "CKV_K8S_10",
+    "title": "CPU requests should be set",
+    "proposed_fix": "Add resources.requests.cpu to container web, e.g. resources: requests: { cpu: \"100m\"; memory: \"128Mi\" }.",
+    "justification": "CPU requests aid scheduling and capacity planning. See Kubernetes resource management documentation."
+  },
+  {
+    "tool": "checkov",
+    "file": "k8s/deployment.yaml",
+    "issue_id": "CKV2_K8S_6",
+    "title": "Minimize the admission of pods which lack an associated NetworkPolicy",
+    "proposed_fix": "Create a NetworkPolicy selecting app: demo with policyTypes [Ingress, Egress] and explicit allowed ingress/egress rules.",
+    "justification": "NetworkPolicies restrict pod traffic and reduce lateral movement. See Kubernetes NetworkPolicy documentation."
+  },
+  {
+    "tool": "checkov",
+    "file": "docker/Dockerfile",
+    "issue_id": "CKV_DOCKER_7",
+    "title": "Ensure the base image uses a non latest version tag",
+    "proposed_fix": "Replace FROM ubuntu:latest with FROM ubuntu:22.04 or a pinned digest, e.g. FROM ubuntu:22.04@sha256:<digest>.",
+    "justification": "Pinned base images make builds reproducible and avoid unexpected changes. See Docker image best practices."
+  },
+  {
+    "tool": "checkov",
+    "file": "docker/Dockerfile",
+    "issue_id": "CKV_DOCKER_8",
+    "title": "Ensure the last USER is not root",
+    "proposed_fix": "Replace USER root with a non-root user, e.g. RUN useradd -u 10001 appuser && USER appuser.",
+    "justification": "Running as non-root reduces container compromise impact. See Docker USER instruction and CIS Docker Benchmark."
+  },
+  {
+    "tool": "checkov",
+    "file": "docker/Dockerfile",
+    "issue_id": "CKV_DOCKER_2",
+    "title": "Ensure that HEALTHCHECK instructions have been added to container images",
+    "proposed_fix": "Add HEALTHCHECK, e.g. HEALTHCHECK --interval=30s --timeout=3s CMD curl -f http://localhost/ || exit 1.",
+    "justification": "Health checks let orchestrators detect unhealthy containers. See Docker HEALTHCHECK documentation."
+  },
+  {
+    "tool": "semgrep",
+    "file": "docker/Dockerfile",
+    "issue_id": "config.docker-avoid-latest",
+    "title": "Avoid 'latest' tag; pin a digest or version.",
+    "proposed_fix": "Replace FROM ubuntu:latest with FROM ubuntu:22.04 or FROM ubuntu:22.04@sha256:<digest>.",
+    "justification": "Avoiding latest prevents non-reproducible builds and unexpected base image changes. See Docker image tagging best practices."
+  },
+  {
+    "tool": "semgrep",
+    "file": "k8s/deployment.yaml",
+    "issue_id": "config.k8s-no-privileged",
+    "title": "Kubernetes container should not run privileged.",
+    "proposed_fix": "Set securityContext.privileged: false for container web and remove privileged capabilities.",
+    "justification": "Privileged containers can compromise the node. See Kubernetes Pod Security Standards and security context documentation."
+  }
+]

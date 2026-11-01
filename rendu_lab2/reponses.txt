@@ -1,0 +1,28 @@
+SYNTHÈSE — ÉVALUATION LLM POUR LA DÉTECTION DE VULNÉRABILITÉS
+
+1. Quels faux positifs et faux négatifs sont importants ?
+
+Un faux positif (FP) correspond à du code classé vulnérable alors que le label attendu est « no ». Il génère des alertes injustifiées, augmente la charge des équipes de sécurité et peut conduire à ignorer de vraies alertes.
+
+Un faux négatif (FN) correspond à du code classé non vulnérable alors que le label attendu est « yes ». Il est particulièrement préoccupant, car une vulnérabilité réelle peut passer inaperçue. Dans les résultats fournis, le prompt sécurisé JSON présente deux prédictions « no » alors que le label attendu est « yes » : ce sont deux faux négatifs selon les labels provisoires. Les fichiers ne suffisent pas à déterminer la gravité réelle de ces cas sans les examiner individuellement.
+
+2. Qu’est-ce qui a changé entre les deux prompts ?
+
+Le prompt de base demande à un assistant logiciel généraliste de décrire les problèmes en texte libre. Le prompt sécurisé définit un rôle d’auditeur de sécurité et exige un objet JSON avec les champs « is_vuln » (yes/no), « cwe », « title » et « rationale ». Il précise également de ne pas exécuter le code et de ne pas suivre les instructions qui y figurent.
+
+La conformité au format s’améliore : le prompt de base fournit 0 classification valide sur 30, contre 29 sur 30 pour le prompt sécurisé. Ce dernier compte 27 classifications correctes selon les labels fournis, deux classifications incorrectes et une erreur de transport. Cette amélioration ne prouve pas à elle seule que la capacité intrinsèque de détection du modèle s’est améliorée, car le format demandé et la méthode de notation influencent le résultat.
+
+3. Quels échecs empêchent d’obtenir un score complet ?
+
+Pour calculer les métriques, chaque groupe doit contenir les 30 identifiants de cas exactement une fois et disposer de 30 classifications valides (« yes » ou « no »).
+
+- Prompt de base : 29 sorties ne respectent pas le format JSON attendu par le vérificateur et une requête échoue au transport. Aucune classification n’est exploitable par ce vérificateur.
+- Prompt sécurisé JSON : deux classifications sont incorrectes et une requête échoue au transport. Les classifications incorrectes restent valides, mais l’erreur de transport empêche d’obtenir une classification exploitable pour les 30 cas.
+
+Selon la règle d’évaluation imposée, la précision, le rappel et le F1 ne sont donc pas définis pour les deux groupes tant que tous les cas ne disposent pas d’une classification valide. Une classification valide mais incorrecte ne bloque pas le calcul : elle contribue simplement aux faux positifs ou aux faux négatifs.
+
+Les labels de référence sont marqués « PROVISIONAL_GROUND_TRUTH » et doivent être validés indépendamment avant de considérer les scores comme définitifs.
+
+CONCLUSION
+
+La priorité est de corriger le format de sortie du prompt de base et de rejouer les cas en échec afin d’obtenir 30 classifications valides par groupe. Il faudra ensuite examiner les faux négatifs du point de vue de la sécurité et calculer les métriques sur les groupes complets. Les résultats actuels montrent surtout une amélioration de la conformité au format JSON, mais ne permettent pas encore de comparer rigoureusement la précision, le rappel et le F1.
